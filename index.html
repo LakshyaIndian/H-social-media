@@ -10,55 +10,67 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="H">
 
-  <!-- PWA Manifest -->
-
   <link rel="manifest" href="./manifest.json">
-
-  <!-- Apple Touch Icons -->
-
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <title>H</title>
-
-  <!-- Preconnect for fonts -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <link rel="stylesheet" href="./style.css">
+
+  <style>
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 99999;
+      transition: opacity 0.3s ease;
+    }
+    #splash.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-letter {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 72px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -3px;
+      line-height: 1;
+    }
+    .splash-bar {
+      width: 40px;
+      height: 3px;
+      background: #1d9bf0;
+      border-radius: 99px;
+      animation: splashpulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes splashpulse {
+      from { width: 24px; opacity: 0.5; }
+      to   { width: 56px; opacity: 1; }
+    }
+  </style>
+
 </head>
 <body>
-  <!-- App root -->
-  <div id="app">
-    <!-- Loading splash -->
-    <div style="
-      position:fixed; inset:0;
-      background:#000;
-      display:flex; align-items:center; justify-content:center;
-      flex-direction:column; gap:16px;
-    ">
-      <span style="
-        font-family: Georgia, serif;
-        font-size: 64px;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -2px;
-        line-height: 1;
-      ">H</span>
-      <div style="
-        width: 36px; height: 2px;
-        background: #1d9bf0;
-        border-radius: 99px;
-        animation: loadbar 1s ease infinite alternate;
-      "></div>
-    </div>
-    <style>
-      @keyframes loadbar {
-        from { width: 20px; opacity: 0.4; }
-        to   { width: 60px; opacity: 1; }
-      }
-    </style>
+
+  <!-- Splash screen — hidden by JS once app is ready -->
+
+  <div id="splash">
+    <span class="splash-letter">H</span>
+    <div class="splash-bar"></div>
   </div>
+
+  <!-- App mounts here -->
+
+  <div id="app"></div>
 
   <script src="./app.js"></script>
 
