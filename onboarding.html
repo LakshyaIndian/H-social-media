@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Hitgram – Setup</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="onboarding-page" id="onboarding-page">
+
+  <!-- Header -->
+  <div class="onboarding-header">
+    <div class="onboarding-logo">Hitgram</div>
+    <div class="onboarding-title">Select 10 images you love</div>
+    <div class="onboarding-subtitle">We'll personalize your explore feed</div>
+    <div class="selection-counter" id="selection-counter">
+      Selected <span id="counter-num">0</span> / 10
+    </div>
+  </div>
+
+  <!-- Image Grid -->
+  <div class="onboarding-grid" id="onboarding-grid">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- CTA -->
+  <div class="onboarding-cta">
+    <div style="font-size: 12px; color: var(--text2); text-align:center">
+      Upload your own images to get started
+    </div>
+    <button class="btn-continue" id="btn-continue" disabled>
+      Continue to Hitgram →
+    </button>
+    <label class="btn-primary" style="cursor:pointer; font-size:13px; padding:10px 22px;">
+      + Upload Images
+      <input type="file" id="onboarding-file-input" multiple accept="image/*" style="display:none">
+    </label>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="hitgram-toast"></div>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+(async function initOnboarding() {
+  const grid = document.getElementById('onboarding-grid');
+  const counter = document.getElementById('counter-num');
+  const counterWrap = document.getElementById('selection-counter');
+  const continueBtn = document.getElementById('btn-continue');
+  const fileInput = document.getElementById('onboarding-file-input');
+
+  const REQUIRED = 10;
+  let selected = new Set();
+  let uploadedImages = []; // { id, blob }
+
+  // Load any already uploaded images
+  async function refreshGrid() {
+    const images = await HitgramDB.getAllImages();
+    uploadedImages = images;
+    renderOnboardingGrid(images);
+  }
+
+  function renderOnboardingGrid(images) {
+    grid.innerHTML = '';
+
+    if (images.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1; padding:60px 20px; text-align:center; color:var(--text2)">
+          <div style="font-size:48px;margin-bottom:12px">📸</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Upload your images</div>
+          <div style="font-size:13px;line-height:1.6">Tap "+ Upload Images" below to add<br>photos from your device</div>
+        </div>`;
+      return;
+    }
+
+    images.forEach((img, i) => {
+      const item = document.createElement('div');
+      item.className = 'onboarding-item' + (selected.has(img.id) ? ' selected' : '');
+      item.dataset.id = img.id;
+
+      const imgEl = document.createElement('img');
+      imgEl.loading = 'lazy';
+      imgEl.alt = '';
+
+      // Lazy load
+      const obs = new IntersectionObserver((entries, o) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            imgEl.src = HitgramApp.getBlobUrl(img.blob);
+            o.unobserve(e.target);
+          }
+        });
+      }, { rootMargin: '200px' });
+
+      const check = document.createElement('div');
+      check.className = 'onboarding-check';
+      check.innerHTML = `<div class="onboarding-check-inner">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>`;
+
+      item.appendChild(imgEl);
+      item.appendChild(check);
+      obs.observe(item);
+
+      item.addEventListener('click', () => toggleSelection(img.id, item));
+      grid.appendChild(item);
+    });
+  }
+
+  function toggleSelection(id, el) {
+    if (selected.has(id)) {
+      selected.delete(id);
+      el.classList.remove('selected');
+    } else {
+      if (selected.size >= REQUIRED) {
+        HitgramApp.showToast(`You can only select ${REQUIRED} images`, 'error');
+        return;
+      }
+      selected.add(id);
+      el.classList.add('selected');
+    }
+    updateCounter();
+  }
+
+  function updateCounter() {
+    counter.textContent = selected.size;
+    const isComplete = selected.size === REQUIRED;
+    counterWrap.className = 'selection-counter' + (isComplete ? ' complete' : '');
+    continueBtn.className = 'btn-continue' + (isComplete ? ' enabled' : '');
+    continueBtn.disabled = !isComplete;
+  }
+
+  continueBtn.addEventListener('click', () => {
+    if (selected.size !== REQUIRED) return;
+    localStorage.setItem('hitgram-selected', JSON.stringify(Array.from(selected)));
+    localStorage.setItem('hitgram-onboarded', '1');
+    window.location.href = './explore.html';
+  });
+
+  // File upload
+  fileInput.addEventListener('change', async () => {
+    const files = Array.from(fileInput.files).filter(f => f.type.startsWith('image/'));
+    if (!files.length) return;
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    let added = 0;
+    const count = await HitgramDB.getImageCount();
+    const remaining = HitgramDB.MAX_IMAGES - count;
+
+    const valid = files.filter(f => {
+      if (f.size > MAX_SIZE) {
+        HitgramApp.showToast(`${f.name} exceeds 10MB limit`, 'error');
+        return false;
+      }
+      return true;
+    }).slice(0, remaining);
+
+    for (const file of valid) {
+      await HitgramDB.addImage(file, []);
+      added++;
+    }
+
+    fileInput.value = '';
+    if (added > 0) {
+      HitgramApp.showToast(`✅ ${added} image${added !== 1 ? 's' : ''} uploaded`);
+      await refreshGrid();
+    }
+  });
+
+  await refreshGrid();
+})();
+</script>
+</body>
+</html>

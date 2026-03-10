@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Hitgram</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hitgram">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Top Navigation -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <button class="btn-add" id="btn-add">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Images
+    </button>
+  </div>
+  <div class="logo-text">Hitgram</div>
+  <div class="nav-right">
+    <button class="nav-icon-btn" id="btn-favorites" title="Favorites">
+      <svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-inner">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" class="search-input" id="search-input" placeholder="Search images..." autocomplete="off" autocorrect="off">
+      <button class="search-clear" id="search-clear">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="all">All</button>
+    <button class="tab-btn" data-tab="favorites">❤️ Favorites</button>
+    <button class="tab-btn" data-tab="recent">Recent</button>
+  </div>
+
+  <!-- Explore Grid -->
+  <div class="explore-grid" id="explore-grid"></div>
+
+  <!-- Empty state (hidden by default) -->
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    <h3 id="empty-title">No images yet</h3>
+    <p id="empty-msg">Tap "+ Add Images" to upload photos to your feed</p>
+    <button class="btn-primary" id="empty-add-btn">+ Add Images</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="grid-loading" style="display:none">
+    <div class="spinner"></div>
+  </div>
+
+</main>
+
+<!-- Shuffle FAB -->
+<button class="fab" id="btn-shuffle" title="Shuffle">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+</button>
+
+<!-- Image Fullscreen Viewer -->
+<div class="viewer" id="image-viewer" role="dialog" aria-modal="true">
+  <div class="viewer-header">
+    <button class="viewer-close" id="viewer-close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="viewer-actions">
+      <button class="viewer-action-btn" id="viewer-fav-btn" aria-label="Favorite">
+        <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+      <button class="viewer-action-btn" id="viewer-download-btn" aria-label="Download">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="viewer-img-wrap" id="viewer-img-wrap">
+    <img id="viewer-img" src="" alt="">
+  </div>
+  <div class="viewer-footer">
+    <div class="viewer-dots" id="viewer-dots"></div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal-sheet">
+    <div class="modal-drag-handle"></div>
+    <div class="modal-title">Add Images</div>
+    <div class="upload-drop-zone" id="upload-drop-zone">
+      <div class="upload-drop-icon">📁</div>
+      <p>Tap to select images<br>or drag & drop here</p>
+      <small>Max 10MB per image · Up to 300 total</small>
+      <input type="file" id="file-input" multiple accept="image/*" style="display:none">
+    </div>
+    <div class="upload-progress-wrap" id="upload-progress-wrap">
+      <div class="upload-progress-bar-wrap">
+        <div class="upload-progress-bar" id="upload-progress-bar"></div>
+      </div>
+      <div class="upload-progress-text" id="upload-progress-text">Uploading...</div>
+    </div>
+    <div style="margin-top: 16px; text-align:center; font-size:12px; color:var(--text2)" id="storage-info">
+      Loading storage info...
+    </div>
+  </div>
+</div>
+
+<!-- Install Banner -->
+<div class="install-banner" id="install-banner">
+  <div class="install-icon">H</div>
+  <div class="install-text">
+    <strong>Install Hitgram</strong>
+    <span>Add to home screen for the best experience</span>
+  </div>
+  <button class="install-btn" id="install-btn">Install</button>
+  <button class="install-dismiss" id="install-dismiss" aria-label="Dismiss">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="hitgram-toast"></div>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+(async function initExplore() {
+  // ── State ──
+  let allImages = [];
+  let currentImages = [];
+  let currentTab = 'all';
+  let searchQuery = '';
+
+  const grid = document.getElementById('explore-grid');
+  const emptyState = document.getElementById('empty-state');
+  const gridLoading = document.getElementById('grid-loading');
+
+  // ── Load & Render ──
+  async function loadExploreGrid() {
+    gridLoading.style.display = 'block';
+    grid.style.display = 'none';
+    emptyState.style.display = 'none';
+
+    try {
+      allImages = await HitgramDB.getAllImages();
+      await applyFilters();
+      updateStorageInfo();
+    } catch(e) {
+      console.error('Load error:', e);
+      HitgramApp.showToast('Failed to load images', 'error');
+    } finally {
+      gridLoading.style.display = 'none';
+    }
+  }
+
+  window.loadExploreGrid = loadExploreGrid;
+
+  async function applyFilters() {
+    let images = [...allImages];
+
+    // Tab filter
+    if (currentTab === 'favorites') {
+      images = images.filter(img => img.favorite);
+    } else if (currentTab === 'recent') {
+      images.sort((a, b) => b.addedDate - a.addedDate);
+      images = images.slice(0, 50);
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      images = images.filter(img => {
+        const dateStr = new Date(img.addedDate).toLocaleDateString().toLowerCase();
+        const tagsStr = (img.tags || []).join(' ').toLowerCase();
+        return dateStr.includes(q) || tagsStr.includes(q);
+      });
+    }
+
+    currentImages = images;
+    renderGrid(currentImages);
+  }
+
+  function renderGrid(images) {
+    if (!images.length) {
+      grid.style.display = 'none';
+      emptyState.style.display = 'flex';
+      const isSearch = searchQuery.trim().length > 0;
+      const isFav = currentTab === 'favorites';
+      document.getElementById('empty-title').textContent = isSearch ? 'No results' : isFav ? 'No favorites yet' : 'No images yet';
+      document.getElementById('empty-msg').textContent = isSearch
+        ? 'Try a different search term'
+        : isFav ? 'Tap ❤️ on images to save favorites'
+        : 'Tap "+ Add Images" to upload photos to your feed';
+      return;
+    }
+
+    grid.style.display = 'grid';
+    emptyState.style.display = 'none';
+    HitgramApp.renderGridItems(images, grid);
+  }
+
+  // ── Tabs ──
+  document.getElementById('tab-bar').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    await applyFilters();
+  });
+
+  // ── Search ──
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+  let searchDebounce;
+
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    searchClear.className = 'search-clear' + (searchQuery ? ' visible' : '');
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(applyFilters, 300);
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClear.className = 'search-clear';
+    applyFilters();
+  });
+
+  // ── Favorites tab button ──
+  document.getElementById('btn-favorites').addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-tab="favorites"]').classList.add('active');
+    currentTab = 'favorites';
+    applyFilters();
+    document.getElementById('btn-favorites').classList.add('active');
+  });
+
+  // ── Shuffle ──
+  document.getElementById('btn-shuffle').addEventListener('click', () => {
+    if (!currentImages.length) return;
+    const shuffled = [...currentImages].sort(() => Math.random() - 0.5);
+    currentImages = shuffled;
+    renderGrid(shuffled);
+    HitgramApp.showToast('🔀 Feed shuffled!');
+  });
+
+  // ── Empty state add btn ──
+  document.getElementById('empty-add-btn').addEventListener('click', () => {
+    document.getElementById('upload-modal').classList.add('open');
+  });
+
+  // ── Storage Info ──
+  async function updateStorageInfo() {
+    const count = await HitgramDB.getImageCount();
+    const info = document.getElementById('storage-info');
+    if (info) info.textContent = `${count} / ${HitgramDB.MAX_IMAGES} images stored`;
+  }
+
+  // ── Init modules ──
+  HitgramApp.initViewer();
+  HitgramApp.initUploadModal();
+  HitgramApp.initInstallBanner();
+
+  // ── Initial load ──
+  await loadExploreGrid();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Hitgram</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hitgram">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.svg">
+  <style>
+    body {
+      margin: 0;
+      background: #0f0f11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      font-family: 'Poppins', sans-serif;
+    }
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .loader-logo {
+      font-family: cursive;
+      font-size: 36px;
+      background: linear-gradient(135deg, #7B2FF7, #ff2d55, #ff7a18);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 16px rgba(255,45,85,0.5));
+      animation: pulse 1.5s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255,45,85,0.4)); }
+      50% { filter: drop-shadow(0 0 20px rgba(255,45,85,0.7)); }
+    }
+    .loader-bar {
+      width: 80px;
+      height: 3px;
+      background: #1a1a1f;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loader-bar-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #7B2FF7, #ff2d55, #ff7a18);
+      border-radius: 2px;
+      animation: loading 1s ease forwards;
+    }
+    @keyframes loading {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <div class="loader-logo">Hitgram</div>
+    <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  </div>
+  <script>
+    // Route to onboarding or explore
+    function route() {
+      const onboarded = localStorage.getItem('hitgram-onboarded');
+      if (onboarded) {
+        window.location.replace('./explore.html');
+      } else {
+        window.location.replace('./onboarding.html');
+      }
+    }
+    // Small delay for splash effect
+    setTimeout(route, 900);
+  </script>
+</body>
+</html>
