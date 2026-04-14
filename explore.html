@@ -23,6 +23,10 @@
   </div>
   <div class="logo-text">Hitgram</div>
   <div class="nav-right">
+    <button class="nav-icon-btn" id="btn-grid-size" title="Toggle grid size">
+      <svg id="grid-icon-compact" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <svg id="grid-icon-large" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </button>
     <button class="nav-icon-btn" id="btn-favorites" title="Favorites">
       <svg width="17" height="17" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>
@@ -45,6 +49,7 @@
     <button class="tab-btn active" data-tab="all">All</button>
     <button class="tab-btn" data-tab="favorites">❤️ Favorites</button>
     <button class="tab-btn" data-tab="recent">Recent</button>
+    <button class="tab-btn" data-tab="daily">🎲 Daily</button>
   </div>
 
   <div class="explore-grid" id="explore-grid"></div>
@@ -80,6 +85,9 @@
       </button>
       <button class="viewer-action-btn" id="viewer-download-btn" aria-label="Download">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="viewer-action-btn" id="viewer-delete-btn" aria-label="Delete">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       </button>
     </div>
   </div>
@@ -145,6 +153,32 @@
   let currentTab = 'all';
   let searchQuery = '';
 
+  // ── Daily Picks: Seeded Shuffle ──
+  function getDailySeed() {
+    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    let seed = 0;
+    for (let i = 0; i < today.length; i++) {
+      seed = (seed * 31 + today.charCodeAt(i)) >>> 0;
+    }
+    return seed || 1;
+  }
+
+  function seededShuffle(arr, seed) {
+    const a = 1664525, c = 1013904223, m = 2 ** 32;
+    let state = seed;
+    function nextRand() { state = (a * state + c) % m; return state / m; }
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(nextRand() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
+  function getDailyPicks(images) {
+    return seededShuffle(images, getDailySeed()).slice(0, 12);
+  }
+
   const grid = document.getElementById('explore-grid');
   const emptyState = document.getElementById('empty-state');
   const gridLoading = document.getElementById('grid-loading');
@@ -169,6 +203,13 @@
 
   window.loadExploreGrid = loadExploreGrid;
 
+  // Called by app.js delete handler to mutate state without a full reload
+  window.removeImageFromState = function(id) {
+    allImages = allImages.filter(img => img.id !== id);
+    currentImages = currentImages.filter(img => img.id !== id);
+    updateTabCounts();
+  };
+
   async function applyFilters() {
     let images = [...allImages];
 
@@ -178,6 +219,8 @@
     } else if (currentTab === 'recent') {
       images.sort((a, b) => b.addedDate - a.addedDate);
       images = images.slice(0, 50);
+    } else if (currentTab === 'daily') {
+      images = getDailyPicks(allImages);
     }
 
     // Search filter
@@ -192,6 +235,7 @@
 
     currentImages = images;
     renderGrid(currentImages);
+    updateTabCounts();
   }
 
   function renderGrid(images) {
@@ -200,17 +244,41 @@
       emptyState.style.display = 'flex';
       const isSearch = searchQuery.trim().length > 0;
       const isFav = currentTab === 'favorites';
-      document.getElementById('empty-title').textContent = isSearch ? 'No results' : isFav ? 'No favorites yet' : 'No images yet';
-      document.getElementById('empty-msg').textContent = isSearch
-        ? 'Try a different search term'
-        : isFav ? 'Tap ❤️ on images to save favorites'
-        : 'Tap "+ Add Images" to upload photos to your feed';
+      const isDaily = currentTab === 'daily';
+      document.getElementById('empty-title').textContent =
+        isSearch ? 'No results' :
+        isFav ? 'No favorites yet' :
+        isDaily ? 'No daily picks yet' :
+        'No images yet';
+      document.getElementById('empty-msg').textContent =
+        isSearch ? 'Try a different search term' :
+        isFav ? 'Tap ❤️ on images to save favorites' :
+        isDaily ? 'Add some images to see your daily picks!' :
+        'Tap "+ Add Images" to upload photos to your feed';
       return;
     }
 
     grid.style.display = 'grid';
     emptyState.style.display = 'none';
     HitgramApp.renderGridItems(images, grid);
+  }
+
+  // ── Tab Count Badges ──
+  function updateTabCounts() {
+    const allCount = allImages.length;
+    const favCount = allImages.filter(img => img.favorite).length;
+    const recentCount = Math.min(50, allImages.length);
+    const dailyCount = Math.min(12, allImages.length);
+
+    const tabAll = document.querySelector('.tab-btn[data-tab="all"]');
+    const tabFav = document.querySelector('.tab-btn[data-tab="favorites"]');
+    const tabRecent = document.querySelector('.tab-btn[data-tab="recent"]');
+    const tabDaily = document.querySelector('.tab-btn[data-tab="daily"]');
+
+    if (tabAll) tabAll.textContent = allCount > 0 ? `All (${allCount})` : 'All';
+    if (tabFav) tabFav.textContent = favCount > 0 ? `❤️ Fav (${favCount})` : '❤️ Favorites';
+    if (tabRecent) tabRecent.textContent = recentCount > 0 ? `Recent (${recentCount})` : 'Recent';
+    if (tabDaily) tabDaily.textContent = dailyCount > 0 ? `🎲 Daily (${dailyCount})` : '🎲 Daily';
   }
 
   // ── Tabs ──
@@ -271,6 +339,38 @@
     const info = document.getElementById('storage-info');
     if (info) info.textContent = `${count} / ${HitgramDB.MAX_IMAGES} images stored`;
   }
+
+  // ── Grid Size Toggle ──
+  (function initGridSizeToggle() {
+    const btn = document.getElementById('btn-grid-size');
+    const gridEl = document.getElementById('explore-grid');
+    const iconCompact = document.getElementById('grid-icon-compact');
+    const iconLarge = document.getElementById('grid-icon-large');
+    const STORAGE_KEY = 'hitgram-grid-size';
+
+    function applyGridSize(size) {
+      if (size === 'large') {
+        gridEl.classList.add('large');
+        iconCompact.style.display = 'none';
+        iconLarge.style.display = '';
+      } else {
+        gridEl.classList.remove('large');
+        iconCompact.style.display = '';
+        iconLarge.style.display = 'none';
+      }
+    }
+
+    const saved = localStorage.getItem(STORAGE_KEY) || 'compact';
+    applyGridSize(saved);
+
+    btn.addEventListener('click', () => {
+      const current = localStorage.getItem(STORAGE_KEY) || 'compact';
+      const next = current === 'compact' ? 'large' : 'compact';
+      localStorage.setItem(STORAGE_KEY, next);
+      applyGridSize(next);
+      HitgramApp.showToast(next === 'large' ? '⊞ Large grid' : '⊟ Compact grid');
+    });
+  })();
 
   // ── Init modules ──
   HitgramApp.initViewer();

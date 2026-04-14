@@ -105,6 +105,17 @@ let viewerScale = 1;
 let viewerPinchDist = null;
 let viewerTranslate = { x: 0, y: 0 };
 let viewerHeaderTimeout;
+let viewerDeleteBtn = null;
+let viewerDeleteTimer = null;
+
+function _resetViewerDeleteBtn() {
+  if (!viewerDeleteBtn) return;
+  clearTimeout(viewerDeleteTimer);
+  delete viewerDeleteBtn.dataset.confirming;
+  viewerDeleteBtn.classList.remove('danger');
+  viewerDeleteBtn.setAttribute('aria-label', 'Delete');
+  if (viewerDeleteBtn._originalHTML) viewerDeleteBtn.innerHTML = viewerDeleteBtn._originalHTML;
+}
 
 // Called from explore page to keep viewer in sync with current grid images
 function setViewerImageList(list) {
@@ -187,6 +198,7 @@ function _updateDots() {
 }
 
 function navigateViewer(direction) {
+  _resetViewerDeleteBtn();
   // direction: -1 = prev, +1 = next
   const newIdx = viewerCurrentIndex + direction;
   if (newIdx < 0 || newIdx >= viewerImageList.length) return;
@@ -219,6 +231,7 @@ function closeViewer() {
   const viewer = document.getElementById('image-viewer');
   viewer.classList.remove('open');
   document.body.style.overflow = '';
+  _resetViewerDeleteBtn();
   viewerCurrentImage = null;
   clearTimeout(viewerHeaderTimeout);
 }
@@ -253,6 +266,7 @@ function initViewer() {
   const downloadBtn = document.getElementById('viewer-download-btn');
   const prevBtn = document.getElementById('viewer-prev');
   const nextBtn = document.getElementById('viewer-next');
+  viewerDeleteBtn = document.getElementById('viewer-delete-btn');
 
   closeBtn.addEventListener('click', closeViewer);
 
@@ -296,6 +310,58 @@ function initViewer() {
       a.download = 'hitgram-image-' + Date.now() + '.' + (viewerCurrentImage.blob.type.split('/')[1] || 'jpg');
       a.click();
       showToast('Image saved!', 'success');
+    });
+  }
+
+  // Delete (2-stage confirmation: first click arms, second click confirms)
+  if (viewerDeleteBtn) {
+    viewerDeleteBtn._originalHTML = viewerDeleteBtn.innerHTML;
+    viewerDeleteBtn.addEventListener('click', async () => {
+      if (!viewerCurrentImage) return;
+
+      if (!viewerDeleteBtn.dataset.confirming) {
+        // First click: arm the button
+        viewerDeleteBtn.dataset.confirming = '1';
+        viewerDeleteBtn.classList.add('danger');
+        viewerDeleteBtn.setAttribute('aria-label', 'Confirm delete?');
+        viewerDeleteBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+        clearTimeout(viewerDeleteTimer);
+        viewerDeleteTimer = setTimeout(() => _resetViewerDeleteBtn(), 2500);
+        showToast('Tap again to delete', 'error');
+        return;
+      }
+
+      // Second click: confirmed — execute deletion
+      _resetViewerDeleteBtn();
+      const id = viewerCurrentImage.id;
+      const deletedIndex = viewerCurrentIndex;
+
+      try {
+        await HitgramDB.deleteImage(id);
+      } catch (e) {
+        showToast('Delete failed', 'error');
+        return;
+      }
+
+      // Remove from viewer list
+      viewerImageList = viewerImageList.filter(img => img.id !== id);
+
+      // Remove grid item from DOM
+      const gridItem = document.querySelector(`.grid-item[data-id="${id}"]`);
+      if (gridItem) gridItem.remove();
+
+      // Update in-page state arrays without full reload
+      if (window.removeImageFromState) window.removeImageFromState(id);
+
+      showToast('🗑️ Image deleted');
+
+      if (viewerImageList.length === 0) {
+        closeViewer();
+        return;
+      }
+
+      viewerCurrentIndex = Math.min(deletedIndex, viewerImageList.length - 1);
+      _loadViewerImage(viewerImageList[viewerCurrentIndex], true);
     });
   }
 

@@ -409,6 +409,17 @@ body {
 .viewer-action-btn.faved { color: var(--accent1); border-color: rgba(255,45,85,0.4); }
 .viewer-action-btn.faved svg { fill: var(--accent1); }
 
+.viewer-action-btn.danger {
+  color: var(--accent1);
+  border-color: rgba(255,45,85,0.6);
+  background: rgba(255,45,85,0.18);
+  animation: deletePulse 0.9s ease infinite alternate;
+}
+@keyframes deletePulse {
+  from { box-shadow: 0 0 0 0 rgba(255,45,85,0); }
+  to   { box-shadow: 0 0 0 6px rgba(255,45,85,0.22); }
+}
+
 /* Gallery prev/next arrows */
 .viewer-nav-btn {
   position: absolute;
@@ -849,6 +860,19 @@ body {
 
 @media (min-width: 1024px) {
   .explore-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ──────────────────── GRID SIZE TOGGLE ──────────────────── */
+.explore-grid.large { grid-template-columns: repeat(2, 1fr); }
+
+@media (min-width: 500px) {
+  .explore-grid.large { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 768px) {
+  .explore-grid.large { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+  .explore-grid.large { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ──────────────────── ANIMATIONS ──────────────────── */
